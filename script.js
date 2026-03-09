@@ -11,7 +11,7 @@ let appConfig = {
 let alertTimestamps = []; 
 let emergencyActive = false;
 
-// BLE & APP STATE
+// BLE Configuration
 const BLE_SERVICE_UUID = 'e267751a-ae76-11eb-8529-0242ac130003';
 const BLE_CHARACTERISTIC_UUID = 'e267751b-ae76-11eb-8529-0242ac130003';
 
@@ -19,7 +19,7 @@ const connectBtnMain = document.getElementById('connect-btn-main');
 const connectNavBtn = document.getElementById('connect-nav-btn');
 let bleDevice = null;
 let bleCharacteristic = null;
-let currentData = { heartRate: 0, steps: 0, fall: false };
+let currentData = { heartRate: 0, steps: 0, fall: false, mpu: null, gps: null };
 
 let ecgChart = null;
 const MAX_DATA_POINTS = 50; 
@@ -221,29 +221,63 @@ async function connectToBLE() {
 /**
  * DASHBOARD & CHART
  */
-function updateDashboard({ steps, heartRate, fall }) {
+function updateDashboard(data) {
+    const { steps, heartRate, fall, mpu, gps } = data;
     const stepsEl = document.getElementById('steps');
     const hrEl = document.getElementById('heart-rate');
     const fallEl = document.getElementById('fall-alert');
     const hrStatus = document.getElementById('hr-status');
 
-    if (steps !== undefined) {
+    if (steps !== undefined && stepsEl) {
         animateValue(stepsEl, currentData.steps || 0, steps, 800);
-        document.getElementById('steps-progress').style.width = `${Math.min((steps / 10000) * 100, 100)}%`;
+        const prog = document.getElementById('steps-progress');
+        if (prog) prog.style.width = `${Math.min((steps / 10000) * 100, 100)}%`;
     }
 
-    if (heartRate !== undefined) {
+    if (heartRate !== undefined && hrEl) {
         animateValue(hrEl, currentData.heartRate || 0, heartRate, 800);
-        hrStatus.textContent = heartRate > 100 ? "Heart working hard" : "Calm & steady";
-        hrStatus.style.color = heartRate > 100 ? "var(--warn-orange)" : "var(--safe-green)";
+        if (hrStatus) {
+            hrStatus.textContent = heartRate > 100 ? "Elevated BPM" : "Resting Rate";
+            hrStatus.style.color = heartRate > 100 ? "var(--warn-orange)" : "var(--text-secondary)";
+        }
     }
 
-    if (fall !== undefined) {
+    if (fall !== undefined && fallEl) {
         fallEl.textContent = fall ? "ALERT" : "SECURE";
         fallEl.style.color = fall ? "var(--danger-red)" : "var(--safe-green)";
     }
 
-    currentData = { ...currentData, steps, heartRate, fall };
+    // MPU6050 Kinematics
+    if (mpu) {
+        // Accelerometer expected in forces (g) roughly
+        const ax = mpu.ax || 0, ay = mpu.ay || 0, az = mpu.az || 0;
+        const mag = Math.sqrt(ax*ax + ay*ay + az*az);
+        
+        const intensityEl = document.getElementById('intensity');
+        if (intensityEl) {
+            let state = "Resting"; let color = "var(--text-secondary)";
+            if (mag > 1.3) { state = "Active"; color = "var(--safe-green)"; }
+            if (mag > 2.2) { state = "Vigorous"; color = "var(--warn-orange)"; }
+            intensityEl.textContent = state;
+            intensityEl.style.color = color;
+        }
+
+        const postureEl = document.getElementById('posture');
+        if (postureEl) {
+            let posture = "Upright";
+            if (Math.abs(az) > 0.7) posture = "Lying Down";
+            else if (Math.abs(ay) < 0.5) posture = "Reclined";
+            postureEl.textContent = posture;
+        }
+    }
+
+    // GPS Processing
+    if (gps && gps.speed !== undefined) {
+        const speedEl = document.getElementById('speed');
+        if (speedEl) speedEl.textContent = parseFloat(gps.speed).toFixed(1);
+    }
+
+    currentData = { ...currentData, ...data };
 }
 
 function initECGChart() {
@@ -464,7 +498,23 @@ async function executeAlerts(location) {
 
 function getCurrentLocation() {
     return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) reject(new Error('Geolocation not supported'));
+        // priority 1: Seamless hardware GPS (ESP32) Without exposing source to user
+        if (currentData.gps && currentData.gps.lat && currentData.gps.lon && currentData.gps.lat !== 0) {
+            return resolve({
+                coords: {
+                    latitude: currentData.gps.lat,
+                    longitude: currentData.gps.lon,
+                    speed: currentData.gps.speed || 0,
+                    accuracy: 5 // Hardware precision simulation
+                }
+            });
+        }
+
+        // Priority 2: Cellular/Mobile GPS fallback seamlessly
+        if (!navigator.geolocation) {
+            return reject(new Error('Geolocation not supported inside environment.'));
+        }
+        
         navigator.geolocation.getCurrentPosition(resolve, reject, { 
             enableHighAccuracy: true, 
             timeout: 10000, 
