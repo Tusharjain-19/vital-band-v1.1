@@ -1,0 +1,121 @@
+<!-- File: index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vital band Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🏃‍♂️ Vital Band Dashboard</h1>
+    <div class="header-controls">
+      <button id="settings-btn" title="Caregiver Settings">
+        <span class="btn-icon">⚙️</span>
+      </button>
+      <button id="connect-btn">
+        <span class="btn-icon">🔗</span>
+        Connect Device
+      </button>
+    </div>
+  </header>
+  <main>
+    <section class="feature">
+      <div class="feature-icon">👟</div>
+      <h2>Step Counting</h2>
+      <p id="steps" class="metric">Steps: --</p>
+    </section>
+    <section class="feature">
+      <div class="feature-icon">❤️</div>
+      <h2>Heart Rate</h2>
+      <p id="heart-rate" class="metric">BPM: --</p>
+    </section>
+    <section class="feature">
+      <div class="feature-icon">🚨</div>
+      <h2>Fall Detection</h2>
+      <p id="fall-alert" class="metric">Status: --</p>
+    </section>
+  </main>
+  
+  <!-- CAREGIVER SETTINGS MODAL -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Emergency Caregiver Settings</h3>
+        <button id="settings-close">×</button>
+      </div>
+      <form id="caregiver-form">
+        <label>Caregiver Name:</label>
+        <input type="text" id="caregiver-name" placeholder="Enter caregiver name" required>
+        
+        <label>Phone Number:</label>
+        <input type="tel" id="caregiver-phone" placeholder="+1234567890" required>
+        
+        <label>Email (optional):</label>
+        <input type="email" id="caregiver-email" placeholder="caregiver@example.com">
+        
+        <button type="submit">Save Caregiver</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EMERGENCY MODAL -->
+  <div id="emergency-modal" class="modal hidden">
+    <div class="modal-content emergency">
+      <div class="emergency-header">
+        <h3>🚨 FALL DETECTED!</h3>
+      </div>
+      <div id="emergency-content">
+        <p>Getting your location...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHATBOT UI: Non-intrusive overlay widget -->
+  <div id="chatbot-widget">
+    <div id="chat-toggle" title="Health Assistant">
+      🤖
+    </div>
+    <div id="chat-window" class="hidden">
+      <div id="chat-header">
+        <span>Health Assistant</span>
+        <button id="chat-close">×</button>
+      </div>
+      <div id="chat-messages"></div>
+      <div id="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Ask about your health data...">
+        <button id="chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Register service worker and request notification permission on page load
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered', reg))
+        .catch(err => console.error('Service Worker registration failed', err));
+    }
+    
+    // Request notification permission early on page load
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Initial notification permission:', permission);
+      });
+    }
+    
+    // Request location permission early
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => console.log('Location permission granted'),
+        () => console.log('Location permission denied'),
+        { timeout: 5000 }
+      );
+    }
+  </script>
+</body>
+</html>

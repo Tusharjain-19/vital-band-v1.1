@@ -1,0 +1,237 @@
+<!-- File: index.html -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="VitalSafe - Professional Health & Safety Monitoring Hub.">
+  <meta name="theme-color" content="#07090f">
+  <title>VitalSafe | Health Monitoring Hub</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <!-- Global Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Device Connection Overlay -->
+  <div id="connection-overlay" class="connection-overlay">
+    <div class="status-box">
+      <div class="pulse-icon">
+        <i class="fas fa-satellite-dish"></i>
+      </div>
+      <h2>Awaiting Device</h2>
+      <p>Please connect your VitalSafe Hub to begin monitoring vitals in real-time.</p>
+      <button id="connect-btn-main" class="pulse-btn">
+        <i class="fas fa-link"></i> Connect Hub
+      </button>
+      <div class="troubleshoot-tips">
+        <p><small>System Service: <strong>...130003</strong></small></p>
+      </div>
+    </div>
+  </div>
+
+  <main class="app-container blurred" id="main-app">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">
+          <i class="fas fa-heart-pulse"></i>
+        </div>
+        <h1>Vital<span>Safe</span></h1>
+      </div>
+      
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button id="settings-trigger" class="icon-btn" aria-label="Settings" onclick="showModal('settings-modal')">
+          <i class="fas fa-sliders"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Activity Card -->
+      <section class="stat-card steps-card">
+        <div class="card-header">
+          <div class="card-icon"><i class="fas fa-person-walking"></i></div>
+          <h3>Activity</h3>
+        </div>
+        <div class="card-body">
+          <p id="steps" class="metric-value">0</p>
+          <p class="metric-unit">Daily Steps</p>
+          <div class="progress-bar">
+            <div id="steps-progress" class="progress-fill" style="width: 0%"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Vitals Card -->
+      <section class="stat-card heart-card">
+        <div class="card-header">
+          <div class="card-icon"><i class="fas fa-heartbeat"></i></div>
+          <h3>Vitals</h3>
+        </div>
+        <div class="card-body">
+          <p id="heart-rate" class="metric-value">0</p>
+          <p class="metric-unit">Current BPM</p>
+          <div id="hr-status" class="hr-status" style="margin-top: 1rem; font-weight: 600;">System Ready</div>
+        </div>
+      </section>
+
+      <!-- Safety Card -->
+      <section class="stat-card fall-card">
+        <div class="card-header">
+          <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
+          <h3>Safety</h3>
+        </div>
+        <div class="card-body">
+          <p id="fall-alert" class="metric-value" style="color: var(--safe-green);">SECURE</p>
+          <p class="metric-description">Fall Guard Active</p>
+        </div>
+      </section>
+
+      <!-- ECG Live Stream -->
+      <section class="chart-card ecg-container">
+        <div class="card-header" style="justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="card-icon"><i class="fas fa-wave-square"></i></div>
+            <h3 style="margin: 0;">Live ECG Stream</h3>
+          </div>
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <button id="analyze-ecg-btn" class="save-btn" style="padding: 0.5rem 1rem; width: auto; font-size: 0.85rem; background: var(--accent-gradient);">
+              <i class="fas fa-brain"></i> AI Analysis (15s)
+            </button>
+            <div class="live-indicator">
+              <span class="pulse-dot"></span> LIVE FEED
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="ecgChart"></canvas>
+          <div id="ecg-analysis-result" class="hidden" style="margin-top: 1rem; padding: 1rem; border-radius: 12px; background: rgba(0, 210, 255, 0.1); border: 1px solid var(--accent-primary); font-size: 0.9rem;">
+            <p><strong><i class="fas fa-robot"></i> VitalAI Analysis:</strong> <span id="ecg-analysis-text">Analyzing...</span></p>
+            <p style="font-size: 0.75rem; color: var(--warn-orange); margin-top: 0.5rem;"><i class="fas fa-exclamation-triangle"></i> Prototype only. Not clinically validated. Consult a doctor for medical advice.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="showTab('dashboard')">
+        <i class="fas fa-grid-2"></i>
+        <span>Hub</span>
+      </button>
+      <button id="connect-nav-btn" class="nav-item connect-nav" aria-label="Connect Device">
+        <div class="nav-pulse">
+           <i class="fas fa-plus"></i>
+        </div>
+      </button>
+      <button class="nav-item" onclick="showModal('settings-modal')">
+        <i class="fas fa-user-gear"></i>
+        <span>Care</span>
+      </button>
+    </nav>
+  </main>
+
+  <!-- Settings Modal (Can act as Onboarding) -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-backdrop" onclick="hideModal('settings-modal')"></div>
+    <div class="modal-content" id="settings-modal-content">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="settings-title">Hub Configuration</h3>
+        <button id="settings-close" class="close-btn">&times;</button>
+      </div>
+      
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="caregiver">Caregiver</button>
+        <button class="tab-btn" data-tab="api">Backend & AI</button>
+      </div>
+      
+      <form id="caregiver-form" class="settings-tab-content" data-content="caregiver">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="caregiver-name" placeholder="Primary Emergency Contact" required>
+        </div>
+        <div class="form-group">
+          <label>Phone (WhatsApp)</label>
+          <input type="tel" id="caregiver-phone" placeholder="+1234567890" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="caregiver-email" placeholder="caregiver@example.com">
+        </div>
+        <button type="submit" class="save-btn">Save Contact Details</button>
+      </form>
+
+      <form id="api-form" class="settings-tab-content hidden" data-content="api">
+        <div class="form-group">
+          <label>Groq AI API Key (For ECG Analysis)</label>
+          <input type="password" id="groq-key" placeholder="gsk_...">
+        </div>
+        <div class="form-group">
+          <label>Telegram Bot Token</label>
+          <input type="password" id="tg-token" placeholder="Bot API Key">
+        </div>
+        <div class="form-group">
+          <label>Telegram Chat ID</label>
+          <input type="text" id="tg-chat-id" placeholder="Personal Chat ID">
+        </div>
+        <button type="submit" class="save-btn">Apply Config</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Emergency Modal -->
+  <div id="emergency-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content emergency text-center">
+      <div class="emergency-header">
+        <h3 class="text-center">🚨 FALL DETECTED!</h3>
+      </div>
+      <div id="emergency-content" class="emergency-body">
+        <!-- Dynamic content from JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Assistant FAB/Widget -->
+  <div id="chatbot-widget">
+    <button id="chat-toggle" class="chat-fab" aria-label="Open AI Assistant">
+      <i class="fas fa-robot"></i>
+    </button>
+    <div id="chat-window" class="chat-window hidden">
+      <div class="chat-header">
+        <div class="bot-info">
+          <i class="fas fa-comment-medical"></i>
+          <span>VitalAI Assistant</span>
+        </div>
+        <button id="chat-close" class="close-btn" style="background: none; border: none; font-size: 1.5rem; color: white;">&times;</button>
+      </div>
+      <div id="chat-messages" class="chat-messages">
+        <div class="message bot-msg">Hello! I'm monitoring your vitals. How can I help you today?</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="How am I doing today?">
+        <button id="chat-send" class="send-btn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
