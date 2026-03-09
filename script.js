@@ -1,9 +1,11 @@
+// Configuration: Falls back to localStorage, overridden by config.js (.env)
+const localApi = JSON.parse(localStorage.getItem('apiKeys')) || { tgToken: "", tgChatId: "", groqKey: "" };
 let appConfig = {
     caregiver: JSON.parse(localStorage.getItem('caregiverData')) || { name: '', phone: '', email: '' },
-    api: JSON.parse(localStorage.getItem('apiKeys')) || { 
-        tgToken: "", 
-        tgChatId: "",
-        groqKey: ""
+    api: {
+        tgToken: (typeof VITAL_ENV !== 'undefined' && VITAL_ENV.TG_TOKEN) ? VITAL_ENV.TG_TOKEN : localApi.tgToken,
+        tgChatId: (typeof VITAL_ENV !== 'undefined' && VITAL_ENV.TG_CHAT_ID) ? VITAL_ENV.TG_CHAT_ID : localApi.tgChatId,
+        groqKey: (typeof VITAL_ENV !== 'undefined' && VITAL_ENV.GROQ_API_KEY) ? VITAL_ENV.GROQ_API_KEY : localApi.groqKey
     }
 };
 
@@ -401,12 +403,20 @@ async function triggerEmergency() {
     let locationInfo = { text: 'Retrieving location...', mapsUrl: '' };
     
     content.innerHTML = `
-        <div class="emergency-flow">
-            <p>🚨 Fall detected for <strong>${appConfig.caregiver.name || 'Emergency Contact'}</strong>.</p>
-            <div id="location-display" class="location-status">Scanning GPS...</div>
-            <div class="timer-box">7s</div>
-            <div class="emergency-actions">
-                <button class="save-btn" onclick="cancelEmergency()" style="background: var(--text-secondary);">I AM OK / FALSE ALARM</button>
+        <div class="emergency-flow" style="display: flex; flex-direction: column; gap: 1rem;">
+            <p style="font-size: 1.2rem; font-weight: 500; margin-bottom: 0;">Automated alert for</p>
+            <p style="font-size: 1.5rem; font-weight: 700; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 12px; margin-top: 0;">${appConfig.caregiver.name || 'Emergency Contact'}</p>
+            
+            <div id="location-display" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <i class="fas fa-satellite-dish fa-spin"></i> Locating...
+            </div>
+            
+            <div class="timer-box" style="width: 120px; height: 120px; border: 4px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; font-weight: 800; color: white; margin: 1rem auto; background: rgba(0,0,0,0.1);">5s</div>
+            
+            <div class="emergency-actions" style="margin-top: 1.5rem;">
+                <button class="save-btn" onclick="cancelEmergency()" style="background: white; color: var(--danger-red); font-weight: 800; font-size: 1.1rem; border-radius: 100px; padding: 1.25rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                    I AM OK (CANCEL)
+                </button>
             </div>
         </div>
     `;
@@ -417,13 +427,13 @@ async function triggerEmergency() {
         locationInfo.text = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
         locationInfo.mapsUrl = `https://maps.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
         const locDisp = document.getElementById('location-display');
-        if (locDisp) locDisp.innerHTML = `<i class="fas fa-location-dot"></i> Location Found: ${locationInfo.text}`;
+        if (locDisp) locDisp.innerHTML = `<i class="fas fa-location-dot"></i> ${locationInfo.text}`;
     } catch (err) {
         const locDisp = document.getElementById('location-display');
         if (locDisp) locDisp.innerHTML = `<i class="fas fa-location-slash"></i> Location unavailable`;
     }
 
-    let count = 7;
+    let count = 5;
     const itv = setInterval(() => {
         count--;
         const timerBox = document.querySelector('.timer-box');
@@ -448,15 +458,32 @@ async function executeAlerts(location) {
     
     const whatsappMsg = `🚨 *VitalSafe EMERGENCY ALERT* 🚨\nFall detected!\n${location.mapsUrl ? `📍 *Location:* ${location.mapsUrl}` : '_Location unavailable_'}`;
 
-    // 1. Telegram Alert (Automated)
+    // 1. Telegram Alert (Automated & Detailed)
     if (appConfig.api.tgToken && appConfig.api.tgChatId) {
+        // Build rich medical context message
+        let tgMessage = `🚨 <b>VITALSAFE MEDICAL SOS</b> 🚨\n\n`;
+        tgMessage += `<b>Patient:</b> ${appConfig.caregiver.name || 'Unknown'}\n`;
+        tgMessage += `<b>Status:</b> FALL DETECTED\n`;
+        tgMessage += `<b>Time:</b> ${new Date().toLocaleTimeString()}\n\n`;
+        tgMessage += `🩺 <b>Live Vitals at Time of Fall:</b>\n`;
+        tgMessage += `• Heart Rate: ${currentData.heartRate} BPM\n`;
+        
+        if (currentData.mpu) {
+            const posture = Math.abs(currentData.mpu.az) > 0.7 ? "Lying Down" : "Unknown";
+            tgMessage += `• Posture: ${posture}\n`;
+        }
+        
+        tgMessage += `\n📍 <b>Location:</b>\n`;
+        tgMessage += location.mapsUrl ? `<a href="${location.mapsUrl}">View Exact Position on Google Maps »</a>` : 'Location unavailable (GPS Blocked)';
+
         fetch(`https://api.telegram.org/bot${appConfig.api.tgToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 chat_id: appConfig.api.tgChatId, 
-                text: `🚨 <b>VitalSafe ALERT</b>\nFall detected!\n${location.mapsUrl ? `<a href="${location.mapsUrl}">📍 View on Map</a>` : 'Location unavailable'}`,
-                parse_mode: 'HTML'
+                text: tgMessage,
+                parse_mode: 'HTML',
+                disable_web_page_preview: false
             })
         }).catch(err => console.error('Telegram failed:', err));
     }
@@ -486,11 +513,11 @@ async function executeAlerts(location) {
     const content = document.getElementById('emergency-content');
     if (content) {
         content.innerHTML = `
-            <div class="success-alert">
-                <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--safe-green);"></i>
-                <h3 style="margin-top: 1.5rem;">Alerts Dispatched</h3>
-                <p style="color: var(--text-secondary); margin-top: 0.5rem;">WhatsApp, SMS, and Email triggered.</p>
-                <button class="save-btn" style="margin-top: 2rem; background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary);" onclick="cancelEmergency()">Return to Dashboard</button>
+            <div style="text-align: center; margin-top: 2rem;">
+                <i class="fas fa-check-circle" style="font-size: 3.5rem; color: white;"></i>
+                <h3 style="margin-top: 1rem; font-size: 1.5rem; font-weight: 700;">Alerts Dispatched</h3>
+                <p style="margin-top: 0.5rem; opacity: 0.9;">Telegram, WhatsApp, and SMS triggered.</p>
+                <button class="save-btn" style="margin-top: 2rem; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 100px; padding: 1rem;" onclick="cancelEmergency()">Return to Dashboard</button>
             </div>
         `;
     }

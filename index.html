@@ -12,9 +12,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css">
+  <script src="config.js" onerror="console.warn('config.js missing. Using localStorage securely.')"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
@@ -232,14 +232,12 @@
     </div>
   </div>
 
-  <!-- Emergency Modal -->
-  <div id="emergency-modal" class="modal hidden">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content emergency text-center">
-      <div class="emergency-header">
-        <h3 class="text-center">🚨 FALL DETECTED!</h3>
-      </div>
-      <div id="emergency-content" class="emergency-body">
+  <!-- Fast Mobile SOS Modal (Full Screen) -->
+  <div id="emergency-modal" class="modal hidden" style="background: var(--danger-red); padding: 0;">
+    <div class="emergency text-center" style="background: var(--danger-red); border: none; box-shadow: none; width: 100vw; height: 100vh; border-radius: 0; padding: 2rem; display: flex; flex-direction: column; justify-content: center;">
+      <i class="fas fa-heartbeat" style="font-size: 5rem; color: white; margin-bottom: 1rem; animation: pulse-opac 1s infinite;"></i>
+      <h2 style="font-size: 2.8rem; font-weight: 800; color: white; letter-spacing: -2px; line-height: 1.1;">EMERGENCY<br>SOS</h2>
+      <div id="emergency-content" style="color: white; margin-top: 2rem;">
         <!-- Dynamic content from JS -->
       </div>
     </div>
