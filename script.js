@@ -150,10 +150,10 @@ async function connectToBLE() {
         console.log('Requesting Bluetooth Device...');
         showToast('Scanning for VitalSafe Hub...', 'info');
         
-        // Searching for any device that supports your specific Service UUID
-        // This is the most reliable way to find your ESP32.
+        // Use name filtering to discover the device as done in the original app
+        // ESP32 devices often don't advertise the GATT Service, so name filter or acceptAllDevices is required.
         bleDevice = await navigator.bluetooth.requestDevice({
-            filters: [{ services: [BLE_SERVICE_UUID] }],
+            filters: [{ name: 'GetFit BLE' }],
             optionalServices: [BLE_SERVICE_UUID]
         });
 
