@@ -405,8 +405,8 @@ async function triggerEmergency() {
             <p>🚨 Fall detected for <strong>${appConfig.caregiver.name || 'Emergency Contact'}</strong>.</p>
             <div id="location-display" class="location-status">Scanning GPS...</div>
             <div class="timer-box">7s</div>
-            <div class="emergency-actions" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <button class="save-btn" style="background:#64748b" onclick="cancelEmergency()">I AM OK / FALSE ALARM</button>
+            <div class="emergency-actions">
+                <button class="save-btn" onclick="cancelEmergency()" style="background: var(--text-secondary);">I AM OK / FALSE ALARM</button>
             </div>
         </div>
     `;
@@ -490,7 +490,7 @@ async function executeAlerts(location) {
                 <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--safe-green);"></i>
                 <h3 style="margin-top: 1.5rem;">Alerts Dispatched</h3>
                 <p style="color: var(--text-secondary); margin-top: 0.5rem;">WhatsApp, SMS, and Email triggered.</p>
-                <button class="save-btn" style="margin-top: 2rem; background: var(--glass-bg); border: 1px solid var(--glass-border);" onclick="cancelEmergency()">Return to Dashboard</button>
+                <button class="save-btn" style="margin-top: 2rem; background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-primary);" onclick="cancelEmergency()">Return to Dashboard</button>
             </div>
         `;
     }

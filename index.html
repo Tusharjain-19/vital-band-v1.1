@@ -63,12 +63,12 @@
         </div>
         <div class="card-body" style="flex-direction: row; justify-content: space-between; align-items: center;">
           <div>
-            <p style="font-size: 3.5rem; line-height: 1; font-weight: 800; background: var(--accent-gradient); background-clip: text; -webkit-background-clip: text; color: transparent;"><span id="heart-rate">0</span><span style="font-size: 1.5rem; margin-left: 0.2rem;">bpm</span></p>
+            <p style="font-size: 3.5rem; line-height: 1; font-weight: 800; color: var(--danger-red);"><span id="heart-rate">0</span><span style="font-size: 1.5rem; margin-left: 0.2rem;">bpm</span></p>
             <p class="metric-unit" style="margin-top: 0.5rem;">Resting Heart Rate</p>
           </div>
           <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
-            <div id="hr-status" class="hr-status" style="font-weight: 700; font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase;">Scanning</div>
-            <div style="display: flex; gap: 4px; align-items: flex-end; height: 24px;">
+            <div id="hr-status" class="hr-status" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Scanning</div>
+            <div style="display: flex; gap: 3px; align-items: flex-end; height: 16px;">
                 <div class="audio-bar" style="animation-delay: 0.1s;"></div>
                 <div class="audio-bar" style="animation-delay: 0.3s;"></div>
                 <div class="audio-bar" style="animation-delay: 0.5s;"></div>
@@ -84,18 +84,18 @@
           <h3>Fall Guard</h3>
         </div>
         <div class="card-body">
-          <p id="fall-alert" class="metric-value" style="color: var(--safe-green); font-size: 1.75rem;">SECURE</p>
+          <p id="fall-alert" class="metric-value" style="color: var(--safe-green);">SECURE</p>
           <p class="metric-description">Status</p>
         </div>
       </section>
       
       <section class="stat-card posture-card">
         <div class="card-header">
-          <div class="card-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;"><i class="fas fa-child"></i></div>
+          <div class="card-icon"><i class="fas fa-child"></i></div>
           <h3>Posture</h3>
         </div>
         <div class="card-body">
-          <p id="posture" class="metric-value" style="font-size: 1.75rem; color: #a855f7;">Syncing</p>
+          <p id="posture" class="metric-value" style="color: var(--posture-purple);">Syncing</p>
           <p class="metric-description">Body Axis</p>
         </div>
       </section>
@@ -107,8 +107,8 @@
           <h3>Activity</h3>
         </div>
         <div class="card-body">
-          <p id="steps" class="metric-value" style="font-size: 1.75rem;">0</p>
-          <div class="progress-bar" style="margin-top: 0.5rem; background: rgba(255,255,255,0.05); height: 4px;">
+          <p id="steps" class="metric-value" style="color: var(--warn-orange);">0</p>
+          <div class="progress-bar">
             <div id="steps-progress" class="progress-fill" style="width: 0%"></div>
           </div>
         </div>
@@ -116,50 +116,51 @@
 
       <section class="stat-card motion-card">
         <div class="card-header">
-          <div class="card-icon" style="background: rgba(245, 175, 25, 0.1); color: var(--warn-orange);"><i class="fas fa-running"></i></div>
+          <div class="card-icon"><i class="fas fa-running"></i></div>
           <h3>Motion</h3>
         </div>
         <div class="card-body">
-          <p id="intensity" class="metric-value" style="font-size: 1.75rem; color: var(--warn-orange);">Resting</p>
+          <p id="intensity" class="metric-value" style="color: var(--accent-primary);">Resting</p>
           <p class="metric-description">Kinematics</p>
         </div>
       </section>
 
       <!-- GPS Pace & Distance -->
-      <section class="stat-card speed-card" style="grid-column: span 2; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem;">
+      <section class="stat-card speed-card" style="grid-column: span 2; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 1rem;">
-          <div class="card-icon" style="background: rgba(0, 242, 96, 0.1); color: var(--safe-green);"><i class="fas fa-satellite"></i></div>
+          <div class="card-icon"><i class="fas fa-location-arrow"></i></div>
           <div>
-            <h3 style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Current Pace</h3>
-            <p style="margin: 0; font-size: 2rem; font-weight: 800; color: var(--safe-green);"><span id="speed">0.0</span> <span style="font-size: 1rem; color: var(--text-secondary);">km/h</span></p>
+            <h3 style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Current Pace</h3>
+            <p style="margin: 0; font-size: 2rem; font-weight: 700; color: var(--text-primary);"><span id="speed">0.0</span> <span style="font-size: 1rem; color: var(--text-secondary);">km/h</span></p>
           </div>
         </div>
-        <div style="text-align: right; font-size: 0.8rem; color: var(--text-secondary);">
-          <div class="pulse-dot" style="display: inline-block; width: 6px; height: 6px; background: var(--safe-green); margin-right: 4px; box-shadow: 0 0 10px var(--safe-green); animation: pulse-green 1.5s infinite;"></div> Satellites Linked
+        <div style="text-align: right; font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
+          <div class="pulse-dot-green"></div> Satellites
         </div>
       </section>
 
       <!-- ECG Live Stream -->
       <section class="chart-card ecg-container">
         <div class="card-header" style="justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
             <div class="card-icon"><i class="fas fa-wave-square"></i></div>
-            <h3 style="margin: 0;">Live ECG Stream</h3>
+            <h3 style="margin: 0; font-weight: 600; color: var(--text-primary); font-size: 1.1rem;">Live ECG Stream</h3>
           </div>
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <button id="analyze-ecg-btn" class="save-btn" style="padding: 0.5rem 1rem; width: auto; font-size: 0.85rem; background: var(--accent-gradient);">
-              <i class="fas fa-brain"></i> AI Analysis (15s)
+            <button id="analyze-ecg-btn" class="save-btn" style="padding: 0.5rem 1rem; width: auto; font-size: 0.85rem; border-radius: 8px;">
+               AI Analysis (15s)
             </button>
             <div class="live-indicator">
-              <span class="pulse-dot"></span> LIVE FEED
+              <span class="pulse-dot-red"></span> LIVE
             </div>
           </div>
         </div>
         <div class="card-body">
           <canvas id="ecgChart"></canvas>
-          <div id="ecg-analysis-result" class="hidden" style="margin-top: 1rem; padding: 1rem; border-radius: 12px; background: rgba(0, 210, 255, 0.1); border: 1px solid var(--accent-primary); font-size: 0.9rem;">
-            <p><strong><i class="fas fa-robot"></i> VitalAI Analysis:</strong> <span id="ecg-analysis-text">Analyzing...</span></p>
-            <p style="font-size: 0.75rem; color: var(--warn-orange); margin-top: 0.5rem;"><i class="fas fa-exclamation-triangle"></i> Prototype only. Not clinically validated. Consult a doctor for medical advice.</p>
+          <div id="ecg-analysis-result" class="hidden analysis-box">
+            <p style="margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary);">VitalAI Evaluation:</p>
+            <p id="ecg-analysis-text" style="color: var(--text-secondary);">Analyzing parameters...</p>
+            <p style="font-size: 0.75rem; color: var(--warn-orange); margin-top: 0.75rem;">Prototype only. Not clinically validated. Consult a doctor.</p>
           </div>
         </div>
       </section>

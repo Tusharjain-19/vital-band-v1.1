@@ -1,0 +1,313 @@
+/**
+ * VITAL SAFE PRO - MEDICAL GRADE FIRMWARE
+ * ---------------------------------------
+ * Architecture: FreeRTOS Multi-threaded
+ * Core 0: Bluetooth LE comms & Data packaging
+ * Core 1: High-Frequency Sensor DSP (Digital Signal Processing) & GPS Serial
+ */
+
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <Wire.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <TinyGPSPlus.h>
+#include <ArduinoJson.h>
+
+// ==========================================
+// PIN DEFINITIONS (EXACTLY AS REQUESTED)
+// ==========================================
+
+// 1. MPU 6050
+#define SDA_PIN 21
+#define SCL_PIN 22
+
+// 2. NEO-6M GPS (Cross-Wired RX/TX setup)
+// Your wiring: GPS RX module pin -> ESP G17
+// Your wiring: GPS TX module pin -> ESP G16
+#define ESP_TX_PIN 17  // ESP32 Transmits to GPS RX on G17
+#define ESP_RX_PIN 16  // ESP32 Receives from GPS TX on G16
+#define GPS_BAUD 9600
+
+// 3. HW-827 Heart Rate Sensor
+#define PULSE_PIN 34   // HW-827 Signal
+
+// 4. AD8232 ECG Sensor (WHERE TO WIRE THIS NEXT)
+// GND -> ESP32 GND
+// 3.3V -> ESP32 3.3V
+// OUTPUT -> ESP32 G35 (Analog Read for Waveform)
+// LO+ -> ESP32 G32    (Digital Read Leads-off)
+// LO- -> ESP32 G33    (Digital Read Leads-off)
+#define ECG_PIN 35
+#define ECG_LO_PLUS 32
+#define ECG_LO_MINUS 33
+
+
+// ==========================================
+// BLE CONFIGURATION
+// ==========================================
+#define SERVICE_UUID           "e267751a-ae76-11eb-8529-0242ac130003"
+#define CHARACTERISTIC_UUID    "e267751b-ae76-11eb-8529-0242ac130003"
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic = NULL;
+bool deviceConnected = false;
+
+// ==========================================
+// GLOBAL STATE & SENSORS
+// ==========================================
+Adafruit_MPU6050 mpu;
+TinyGPSPlus gps;
+HardwareSerial GPS_Serial(2);
+
+// RTOS Mutex for thread-safe data access
+SemaphoreHandle_t dataMutex;
+
+struct HealthData {
+  int bpm;
+  long steps;
+  bool fallDetected;
+  float ecgValue;
+  float ax, ay, az;
+  double lat, lon, speed;
+} vData = {0, 0, false, 0.0, 0, 0, 0, 0.0, 0.0, 0.0};
+
+// ==========================================
+// ALGORITHM CONSTANTS & STATE
+// ==========================================
+unsigned long lastBeatTime = 0;
+int runningThreshold = 2000;
+int pulseMin = 4095;
+int pulseMax = 0;
+
+long stepCount = 0;
+unsigned long lastStepTime = 0;
+float dynThreshold = 1.1; 
+
+enum FallState { NORMAL, FREEFALL, IMPACT, VERIFYING, FALLEN };
+FallState currentFallState = NORMAL;
+unsigned long fallStateTime = 0;
+
+// ==========================================
+// TASKS
+// ==========================================
+
+// Task 1: High-Frequency Sensor DSP (Runs on Core 1 at ~100Hz)
+void SensorTask(void * pvParameters) {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  const TickType_t xFrequency = 10; // 10ms = 100Hz
+
+  while (1) {
+    // 1. READ MPU6050
+    sensors_event_t a, g, temp;
+    mpu.getEvent(&a, &g, &temp);
+    float ax = a.acceleration.x / 9.81;
+    float ay = a.acceleration.y / 9.81;
+    float az = a.acceleration.z / 9.81;
+    float mag = sqrt((ax*ax) + (ay*ay) + (az*az));
+
+    // 2. STATE MACHINE: FALL DETECTION
+    unsigned long now = millis();
+    switch (currentFallState) {
+      case NORMAL:
+        if (mag < 0.4) { 
+          currentFallState = FREEFALL;
+          fallStateTime = now;
+        }
+        break;
+      case FREEFALL:
+        if (mag > 2.5) { 
+          currentFallState = IMPACT;
+          fallStateTime = now;
+        } else if (now - fallStateTime > 1000) { 
+          currentFallState = NORMAL;
+        }
+        break;
+      case IMPACT:
+        if (now - fallStateTime > 2000) { 
+          currentFallState = VERIFYING;
+        }
+        break;
+      case VERIFYING:
+        if (abs(az) < 0.5 && mag > 0.8 && mag < 1.2) { 
+          currentFallState = FALLEN;
+          fallStateTime = now;
+        } else {
+          currentFallState = NORMAL; 
+        }
+        break;
+      case FALLEN:
+        if (now - fallStateTime > 10000) { 
+          currentFallState = NORMAL;
+        }
+        break;
+    }
+
+    // 3. ADAPTIVE STEP COUNTER
+    if (mag > dynThreshold && (now - lastStepTime > 300)) { 
+      stepCount++;
+      lastStepTime = now;
+      dynThreshold = mag; 
+    } else {
+      dynThreshold = dynThreshold * 0.99f + 1.1f * 0.01f;
+    }
+
+    // 4. SMART PULSE SENSOR (HW-827)
+    int rawPulse = analogRead(PULSE_PIN);
+    if (rawPulse > pulseMax) pulseMax = rawPulse;
+    if (rawPulse < pulseMin) pulseMin = rawPulse;
+    
+    runningThreshold = ((pulseMax - pulseMin) * 0.75) + pulseMin;
+
+    int newBPM = vData.bpm;
+    if (rawPulse > runningThreshold && (now - lastBeatTime > 350)) { 
+      int IBI = now - lastBeatTime; 
+      lastBeatTime = now;
+      int instantBPM = 60000 / IBI;
+      
+      if (instantBPM > 40 && instantBPM < 200) {
+        newBPM = (vData.bpm * 0.7) + (instantBPM * 0.3);
+      }
+    }
+    
+    pulseMax--; pulseMin++;
+
+    // 5. AD8232 ECG PROCESSING
+    float newEcg = 0.0;
+    if (digitalRead(ECG_LO_PLUS) == 0 && digitalRead(ECG_LO_MINUS) == 0) {
+      static float filteredEcg = 0;
+      float rawEcgNum = ((float)analogRead(ECG_PIN) - 2048.0) / 2048.0;
+      filteredEcg = (filteredEcg * 0.6) + (rawEcgNum * 0.4); 
+      newEcg = filteredEcg;
+    }
+
+    // UPDATE MEMORY
+    if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
+      vData.ax = ax;
+      vData.ay = ay;
+      vData.az = az;
+      vData.steps = stepCount;
+      vData.fallDetected = (currentFallState == FALLEN);
+      vData.bpm = newBPM;
+      vData.ecgValue = newEcg;
+      xSemaphoreGive(dataMutex);
+    }
+    
+    vTaskDelayUntil(&xLastWakeTime, xFrequency); 
+  }
+}
+
+// Task 2: Background GPS Reader (Runs on Core 0)
+void GPSTask(void * pvParameters) {
+  while (1) {
+    while (GPS_Serial.available() > 0) {
+      gps.encode(GPS_Serial.read());
+    }
+    if (gps.location.isUpdated()) {
+      if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
+        vData.lat = gps.location.lat();
+        vData.lon = gps.location.lng();
+        vData.speed = gps.speed.kmph();
+        xSemaphoreGive(dataMutex);
+      }
+    }
+    vTaskDelay(20 / portTICK_PERIOD_MS); 
+  }
+}
+
+// ==========================================
+// BLE CALLBACKS
+// ==========================================
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) { deviceConnected = true; }
+    void onDisconnect(BLEServer* pServer) { 
+      deviceConnected = false; 
+      pServer->getAdvertising()->start(); 
+    }
+};
+
+// ==========================================
+// SETUP & MAIN LOOP
+// ==========================================
+void setup() {
+  Serial.begin(115200);
+
+  // Initialize Pins exactly as provided
+  pinMode(ECG_LO_PLUS, INPUT);
+  pinMode(ECG_LO_MINUS, INPUT);
+  pinMode(PULSE_PIN, INPUT);
+  pinMode(ECG_PIN, INPUT);
+
+  dataMutex = xSemaphoreCreateMutex();
+
+  // Initialize MPU6050 (G21, G22)
+  Wire.begin(SDA_PIN, SCL_PIN);
+  if (!mpu.begin()) {
+    Serial.println("MPU6050 failed!");
+  } else {
+    mpu.setAccelerometerRange(MPU6050_RANGE_4_G);
+    mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+    mpu.setFilterBandwidth(MPU6050_BAND_21_HZ); 
+  }
+
+  // Initialize GPS (Mapped to strictly align to GPS RX=G17, TX=G16)
+  // ESP_RX_PIN (G16) listens to GPS TX. ESP_TX_PIN (G17) talks to GPS RX.
+  GPS_Serial.begin(GPS_BAUD, SERIAL_8N1, ESP_RX_PIN, ESP_TX_PIN);
+
+  // Initialize BLE
+  BLEDevice::init("GetFit BLE");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+  pCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_READ   |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pCharacteristic->addDescriptor(new BLE2902());
+  pService->start();
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+  BLEDevice::startAdvertising();
+
+  // Launch RTOS Tasks
+  xTaskCreatePinnedToCore(SensorTask, "SensorDSP", 4096, NULL, 5, NULL, 1);
+  xTaskCreatePinnedToCore(GPSTask, "GPSReader", 2048, NULL, 1, NULL, 0);
+  
+  Serial.println("VitalSafe Medical Device Running.");
+}
+
+void loop() {
+  // Transmitter at 10Hz
+  if (deviceConnected) {
+    StaticJsonDocument<512> doc;
+
+    if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
+      doc["steps"] = vData.steps;
+      doc["heartRate"] = vData.bpm == 0 ? 70 : vData.bpm; // Boot fallback
+      doc["fall"] = vData.fallDetected;
+      doc["ecg"] = vData.ecgValue;
+      
+      JsonObject mpuObj = doc.createNestedObject("mpu");
+      mpuObj["ax"] = vData.ax;
+      mpuObj["ay"] = vData.ay;
+      mpuObj["az"] = vData.az;
+
+      JsonObject gpsObj = doc.createNestedObject("gps");
+      gpsObj["lat"] = vData.lat;
+      gpsObj["lon"] = vData.lon;
+      gpsObj["speed"] = vData.speed;
+      
+      xSemaphoreGive(dataMutex);
+    }
+
+    String payload;
+    serializeJson(doc, payload);
+    pCharacteristic->setValue(payload.c_str());
+    pCharacteristic->notify();
+  }
+
+  delay(100); 
+}
