@@ -207,11 +207,17 @@ header {
   background: var(--bg-card-hover);
 }
 
-/* Dashboard Grid */
+/* Dashboard Grid - Mobile First */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+@media (min-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .stat-card {
