@@ -1,23 +1,30 @@
 <!-- File: index.html -->
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="VitalSafe - Professional Health & Safety Monitoring Hub.">
-  <meta name="theme-color" content="#07090f">
-  <title>VitalSafe | Health Monitoring Hub</title>
+  <meta name="description" content="VitalSafe - Mobile Health Monitoring Hub.">
+  <meta name="theme-color" content="#ffffff">
+  <title>VitalSafe Mobile</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css">
-  <script src="config.js" onerror="console.warn('config.js missing. Using localStorage securely.')"></script>
+  <script src="config.js" onerror="console.warn('config.js missing')"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
+  <!-- Mobile Restriction Message -->
+  <div id="desktop-restriction">
+    <i class="fas fa-mobile-alt"></i>
+    <h1>Mobile View Only</h1>
+    <p>This application is designed specifically for smartphones. Please open this link on your mobile device to continue.</p>
+  </div>
+
   <!-- Global Toast container -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -28,243 +35,214 @@
         <i class="fas fa-satellite-dish"></i>
       </div>
       <h2>Awaiting Device</h2>
-      <p>Please connect your VitalSafe Hub to begin monitoring vitals in real-time.</p>
-      <button id="connect-btn-main" class="pulse-btn">
-        <i class="fas fa-link"></i> Connect Hub
+      <p>Connect your VitalSafe Band to start monitoring your health metrics in real-time.</p>
+      <button id="connect-btn-main" class="btn-primary">
+        <i class="fas fa-plus"></i> Connect My Band
       </button>
     </div>
   </div>
 
-  <main class="app-container blurred" id="main-app">
+  <div class="app-container blurred" id="main-app">
+    <!-- Mobile Header (56px) -->
     <header>
-      <div class="logo">
-        <div class="logo-icon">
-          <i class="fas fa-heart-pulse"></i>
+      <div class="app-logo">
+        <i class="fas fa-heart-pulse"></i>
+        <div>
+          <h1>VitalSafe</h1>
+          <span id="current-time" style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-top: -2px;">Checking time...</span>
         </div>
-        <h1>Vital<span>Safe</span></h1>
       </div>
-      
-      <div class="header-actions">
-        <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme">
-          <i class="fas fa-moon"></i>
+      <div class="header-icons">
+        <div id="connection-status-badge" style="font-size: 0.65rem; font-weight: 700; background: #fee2e2; color: #ef4444; padding: 2px 8px; border-radius: 99px; margin-right: 0.5rem;">OFFLINE</div>
+        <button class="header-icon-btn" onclick="showToast('No new notifications', 'info')">
+          <i class="far fa-bell"></i>
         </button>
-        <button id="settings-trigger" class="icon-btn" aria-label="Settings" onclick="showModal('settings-modal')">
-          <i class="fas fa-sliders"></i>
+        <button class="header-icon-btn" onclick="openBottomSheet('profile-sheet')">
+          <div class="profile-img">
+            <i class="fas fa-user"></i>
+          </div>
         </button>
       </div>
     </header>
 
-    <div class="dashboard-grid">
-      <!-- Vitals Card (Hero) -->
-      <section class="stat-card heart-card" style="grid-column: span 2;">
-        <div class="card-header" style="margin-bottom: 0.5rem;">
-          <div class="card-icon"><i class="fas fa-heartbeat"></i></div>
-          <h3>Cardiovascular Profile</h3>
+    <!-- Scrollable Content -->
+    <main class="scroll-content">
+      <!-- Heart Rate Card -->
+      <section class="card">
+        <div class="card-title">
+          <i class="fas fa-heartbeat"></i>
+          <span>Heart Rate</span>
         </div>
-        <div class="card-body" style="flex-direction: row; justify-content: space-between; align-items: center;">
-          <div>
-            <p style="font-size: 3.5rem; line-height: 1; font-weight: 800; color: var(--danger-red);"><span id="heart-rate">0</span><span style="font-size: 1.5rem; margin-left: 0.2rem;">bpm</span></p>
-            <p class="metric-unit" style="margin-top: 0.5rem;">Resting Heart Rate</p>
+        <div class="metric-row">
+          <span class="metric-v" id="heart-rate">0</span>
+          <span class="metric-u">BPM</span>
+        </div>
+        <div id="hr-status" style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">Scanning...</div>
+      </section>
+
+      <!-- Grid for smaller cards -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+        <section class="card">
+          <div class="card-title">
+            <i class="fas fa-shield-alt"></i>
+            <span>Safety</span>
           </div>
-          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
-            <div id="hr-status" class="hr-status" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Scanning</div>
-            <div style="display: flex; gap: 3px; align-items: flex-end; height: 16px;">
-                <div class="audio-bar" style="animation-delay: 0.1s;"></div>
-                <div class="audio-bar" style="animation-delay: 0.3s;"></div>
-                <div class="audio-bar" style="animation-delay: 0.5s;"></div>
-            </div>
+          <div class="metric-row">
+            <span class="metric-v" style="font-size: 1.5rem;" id="fall-alert">OK</span>
           </div>
-        </div>
-      </section>
-
-      <!-- Safety & Posture -->
-      <section class="stat-card fall-card">
-        <div class="card-header">
-          <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
-          <h3>Fall Guard</h3>
-        </div>
-        <div class="card-body">
-          <p id="fall-alert" class="metric-value" style="color: var(--safe-green);">SECURE</p>
-          <p class="metric-description">Status</p>
-        </div>
-      </section>
-      
-      <section class="stat-card posture-card">
-        <div class="card-header">
-          <div class="card-icon"><i class="fas fa-child"></i></div>
-          <h3>Posture</h3>
-        </div>
-        <div class="card-body">
-          <p id="posture" class="metric-value" style="color: var(--posture-purple);">Syncing</p>
-          <p class="metric-description">Body Axis</p>
-        </div>
-      </section>
-
-      <!-- Activity & Motion -->
-      <section class="stat-card steps-card">
-        <div class="card-header">
-          <div class="card-icon"><i class="fas fa-shoe-prints"></i></div>
-          <h3>Activity</h3>
-        </div>
-        <div class="card-body">
-          <p id="steps" class="metric-value" style="color: var(--warn-orange);">0</p>
-          <div class="progress-bar">
-            <div id="steps-progress" class="progress-fill" style="width: 0%"></div>
+        </section>
+        
+        <section class="card">
+          <div class="card-title">
+            <i class="fas fa-shoe-prints"></i>
+            <span>Steps</span>
           </div>
-        </div>
-      </section>
-
-      <section class="stat-card motion-card">
-        <div class="card-header">
-          <div class="card-icon"><i class="fas fa-running"></i></div>
-          <h3>Motion</h3>
-        </div>
-        <div class="card-body">
-          <p id="intensity" class="metric-value" style="color: var(--accent-primary);">Resting</p>
-          <p class="metric-description">Kinematics</p>
-        </div>
-      </section>
-
-      <!-- GPS Pace & Distance -->
-      <section class="stat-card speed-card" style="grid-column: span 2; display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <div class="card-icon"><i class="fas fa-location-arrow"></i></div>
-          <div>
-            <h3 style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Current Pace</h3>
-            <p style="margin: 0; font-size: 2rem; font-weight: 700; color: var(--text-primary);"><span id="speed">0.0</span> <span style="font-size: 1rem; color: var(--text-secondary);">km/h</span></p>
+          <div class="metric-row">
+            <span class="metric-v" style="font-size: 1.5rem;" id="steps">0</span>
           </div>
-        </div>
-        <div style="text-align: right; font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
-          <div class="pulse-dot-green"></div> Satellites
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <!-- ECG Live Stream -->
-      <section class="chart-card ecg-container">
-        <div class="card-header" style="justify-content: space-between;">
+      <!-- Live ECG Card -->
+      <section class="card">
+        <div class="card-title" style="justify-content: space-between; width: 100%;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <div class="card-icon"><i class="fas fa-wave-square"></i></div>
-            <h3 style="margin: 0; font-weight: 600; color: var(--text-primary); font-size: 1.1rem;">Live ECG Stream</h3>
+            <i class="fas fa-wave-square"></i>
+            <span>Live ECG Stream</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 1rem;">
-            <button id="analyze-ecg-btn" class="save-btn" style="padding: 0.5rem 1rem; width: auto; font-size: 0.85rem; border-radius: 8px;">
-               AI Analysis (15s)
-            </button>
-            <div class="live-indicator">
-              <span class="pulse-dot-red"></span> LIVE
-            </div>
+          <div class="live-indicator" style="font-size: 0.7rem;">
+            <span class="pulse-dot-red"></span> LIVE
           </div>
         </div>
-        <div class="card-body">
-          <canvas id="ecgChart"></canvas>
-          <div id="ecg-analysis-result" class="hidden analysis-box">
-            <p style="margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary);">VitalAI Evaluation:</p>
-            <p id="ecg-analysis-text" style="color: var(--text-secondary);">Analyzing parameters...</p>
-            <p style="font-size: 0.75rem; color: var(--warn-orange); margin-top: 0.75rem;">Prototype only. Not clinically validated. Consult a doctor.</p>
+        <canvas id="ecgChart"></canvas>
+        <button id="analyze-ecg-btn" class="btn-primary" style="margin-top: 1.25rem; background: #f1f5f9; color: var(--primary); box-shadow: none;">
+          <i class="fas fa-robot"></i> AI Analysis
+        </button>
+      </section>
+
+      <!-- More Metrics -->
+      <section class="card">
+        <div class="card-title">
+          <i class="fas fa-location-arrow"></i>
+          <span>Kinematics</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="metric-row">
+            <span class="metric-v" style="font-size: 1.8rem;" id="speed">0.0</span>
+            <span class="metric-u">km/h</span>
           </div>
+          <div id="intensity" style="font-weight: 600; color: var(--accent);">Resting</div>
         </div>
       </section>
-    </div>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" onclick="showTab('dashboard')">
-        <i class="fas fa-grid-2"></i>
-        <span>Hub</span>
-      </button>
-      <button id="connect-nav-btn" class="nav-item connect-nav" aria-label="Connect Device">
-        <div class="nav-pulse">
-           <i class="fas fa-plus"></i>
+      <!-- ECG Analysis Secret Box -->
+      <div id="ecg-analysis-result" class="hidden" style="margin-top: -0.5rem;">
+        <div class="card" style="background: var(--primary); color: white;">
+          <p style="font-weight: 600; margin-bottom: 0.5rem;">VitalAI Analysis</p>
+          <p id="ecg-analysis-text" style="font-size: 0.9rem; opacity: 0.9;">Analyzing parameters...</p>
         </div>
+      </div>
+    </main>
+
+    <!-- FAB for AI Chat -->
+    <button class="fab" id="chat-fab-main" onclick="openChat()">
+      <i class="fas fa-comment-medical"></i>
+    </button>
+
+    <!-- Sticky Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="showSection('dashboard')">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
       </button>
-      <button class="nav-item" onclick="showModal('settings-modal')">
-        <i class="fas fa-user-gear"></i>
-        <span>Care</span>
+      <button class="nav-item" onclick="showSection('search')">
+        <i class="fas fa-search"></i>
+        <span>Search</span>
+      </button>
+      <button class="nav-item" onclick="showSection('activity')">
+        <i class="fas fa-bolt"></i>
+        <span>Activity</span>
+      </button>
+      <button class="nav-item" onclick="openBottomSheet('profile-sheet')">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
       </button>
     </nav>
-  </main>
+  </div>
 
-  <!-- Settings Modal (Can act as Onboarding) -->
-  <div id="settings-modal" class="modal hidden">
-    <div class="modal-backdrop" onclick="hideModal('settings-modal')"></div>
-    <div class="modal-content" id="settings-modal-content">
-      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 id="settings-title">Hub Configuration</h3>
-        <button id="settings-close" class="close-btn">&times;</button>
+  <!-- Bottom Sheet (Profile/Settings) -->
+  <div class="sheet-backdrop" id="sheet-backdrop" onclick="closeAllSheets()"></div>
+  <div class="bottom-sheet" id="profile-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <h2>Band Settings</h2>
       </div>
       
       <div class="modal-tabs">
-        <button class="tab-btn active" data-tab="caregiver">Caregiver</button>
-        <button class="tab-btn" data-tab="api">Backend & AI</button>
+        <button class="tab-btn active" onclick="switchTab(this, 'caregiver-tab')">Contact</button>
+        <button class="tab-btn" onclick="switchTab(this, 'api-tab')">Advanced</button>
       </div>
-      
-      <form id="caregiver-form" class="settings-tab-content" data-content="caregiver">
-        <div class="form-group">
-          <label>Full Name</label>
-          <input type="text" id="caregiver-name" placeholder="Primary Emergency Contact" required>
-        </div>
-        <div class="form-group">
-          <label>Phone (WhatsApp)</label>
-          <input type="tel" id="caregiver-phone" placeholder="+1234567890" required>
-        </div>
-        <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" id="caregiver-email" placeholder="caregiver@example.com">
-        </div>
-        <button type="submit" class="save-btn">Save Contact Details</button>
-      </form>
 
-      <form id="api-form" class="settings-tab-content hidden" data-content="api">
-        <div class="form-group">
-          <label>Groq AI API Key (For ECG Analysis)</label>
-          <input type="password" id="groq-key" placeholder="gsk_...">
-        </div>
-        <div class="form-group">
-          <label>Telegram Bot Token</label>
-          <input type="password" id="tg-token" placeholder="Bot API Key">
-        </div>
-        <div class="form-group">
-          <label>Telegram Chat ID</label>
-          <input type="text" id="tg-chat-id" placeholder="Personal Chat ID">
-        </div>
-        <button type="submit" class="save-btn">Apply Config</button>
-      </form>
-    </div>
-  </div>
+      <div id="caregiver-tab" class="tab-content">
+        <form id="caregiver-form">
+          <div class="form-group">
+            <label>Emergency Contact Name</label>
+            <input type="text" id="caregiver-name" placeholder="Name">
+          </div>
+          <div class="form-group">
+            <label>WhatsApp Number</label>
+            <input type="tel" id="caregiver-phone" placeholder="+1234567890">
+          </div>
+          <button type="submit" class="save-btn">Save Contact</button>
+        </form>
+      </div>
 
-  <!-- Fast Mobile SOS Modal (Full Screen) -->
-  <div id="emergency-modal" class="modal hidden" style="background: var(--danger-red); padding: 0;">
-    <div class="emergency text-center" style="background: var(--danger-red); border: none; box-shadow: none; width: 100vw; height: 100vh; border-radius: 0; padding: 2rem; display: flex; flex-direction: column; justify-content: center;">
-      <i class="fas fa-heartbeat" style="font-size: 5rem; color: white; margin-bottom: 1rem; animation: pulse-opac 1s infinite;"></i>
-      <h2 style="font-size: 2.8rem; font-weight: 800; color: white; letter-spacing: -2px; line-height: 1.1;">EMERGENCY<br>SOS</h2>
-      <div id="emergency-content" style="color: white; margin-top: 2rem;">
-        <!-- Dynamic content from JS -->
+      <div id="api-tab" class="tab-content hidden">
+        <form id="api-form">
+          <div class="form-group">
+            <label>Groq API Key</label>
+            <input type="password" id="groq-key" placeholder="gsk_...">
+          </div>
+          <div class="form-group">
+            <label>Telegram Token</label>
+            <input type="password" id="tg-token" placeholder="Bot Token">
+          </div>
+          <button type="submit" class="save-btn">Save Config</button>
+        </form>
       </div>
     </div>
   </div>
 
-  <!-- AI Assistant FAB/Widget -->
-  <div id="chatbot-widget">
-    <button id="chat-toggle" class="chat-fab" aria-label="Open AI Assistant">
-      <i class="fas fa-robot"></i>
-    </button>
-    <div id="chat-window" class="chat-window hidden">
-      <div class="chat-header">
-        <div class="bot-info">
-          <i class="fas fa-comment-medical"></i>
-          <span>VitalAI Assistant</span>
-        </div>
-        <button id="chat-close" class="close-btn" style="background: none; border: none; font-size: 1.5rem; color: white;">&times;</button>
+  <!-- Fullscreen Chat Overlay -->
+  <div id="chat-window" class="chat-window">
+    <header>
+      <div class="app-logo">
+        <i class="fas fa-robot"></i>
+        <h1>VitalAI</h1>
       </div>
-      <div id="chat-messages" class="chat-messages">
-        <div class="message bot-msg">Hello! I'm monitoring your vitals. How can I help you today?</div>
-      </div>
-      <div class="chat-input-area">
-        <input type="text" id="chat-input" placeholder="How am I doing today?">
-        <button id="chat-send" class="send-btn">
-          <i class="fas fa-paper-plane"></i>
-        </button>
-      </div>
+      <button class="header-icon-btn" onclick="closeChat()">
+        <i class="fas fa-times"></i>
+      </button>
+    </header>
+    <div id="chat-messages" class="chat-messages">
+      <div class="message bot-msg">Hello! I'm your health assistant. How are you feeling?</div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-input" placeholder="Type a message...">
+      <button id="chat-send" class="send-btn">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Emergency Modal -->
+  <div id="emergency-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" style="background: var(--danger); color: white; text-align: center;">
+      <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+      <h2 style="font-family: var(--font-display); margin-bottom: 1rem;">EMERGENCY SOS</h2>
+      <div id="emergency-content">Detecting critical event...</div>
     </div>
   </div>
 
@@ -275,3 +253,4 @@
   </script>
 </body>
 </html>
+

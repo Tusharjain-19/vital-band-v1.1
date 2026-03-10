@@ -1,5 +1,5 @@
 /**
- * VITAL SAFE PRO - MEDICAL GRADE FIRMWARE
+ * VITAL SAFE 
  * ---------------------------------------
  * Architecture: FreeRTOS Multi-threaded
  * Core 0: Bluetooth LE comms & Data packaging
