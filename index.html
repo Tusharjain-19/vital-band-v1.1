@@ -201,12 +201,24 @@
       <div id="api-tab" class="tab-content hidden">
         <form id="api-form">
           <div class="form-group">
-            <label>Groq API Key</label>
-            <input type="password" id="groq-key" placeholder="gsk_...">
+            <label>AI API Key</label>
+            <input type="password" id="ai-key" placeholder="API Key (e.g. sk-...)">
+          </div>
+          <div class="form-group">
+            <label>AI Base URL</label>
+            <input type="text" id="ai-url" placeholder="https://api.openai.com/.../chat/completions">
+          </div>
+          <div class="form-group">
+            <label>AI Model</label>
+            <input type="text" id="ai-model" placeholder="gpt-4o / llama3-8b-8192">
           </div>
           <div class="form-group">
             <label>Telegram Token</label>
             <input type="password" id="tg-token" placeholder="Bot Token">
+          </div>
+          <div class="form-group">
+            <label>Telegram Chat ID</label>
+            <input type="text" id="tg-chat-id" placeholder="Chat ID">
           </div>
           <button type="submit" class="save-btn">Save Config</button>
         </form>
@@ -243,6 +255,7 @@
       <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
       <h2 style="font-family: var(--font-display); margin-bottom: 1rem;">EMERGENCY SOS</h2>
       <div id="emergency-content">Detecting critical event...</div>
+      <button id="emergency-cancel-btn" class="btn-primary" style="margin-top: 1.5rem; background: white; color: var(--danger);">Cancel Alert</button>
     </div>
   </div>
 

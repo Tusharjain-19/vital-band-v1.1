@@ -71,11 +71,29 @@ body {
 }
 
 @media (min-width: 481px) {
-  #desktop-restriction {
-    display: flex;
+  #desktop-restriction { display: none !important; }
+  body { background-color: #e2e8f0; }
+  
+  .app-container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--background);
+    box-shadow: 0 0 40px rgba(0,0,0,0.08);
+    position: relative;
+    overflow: hidden;
   }
-  #main-app, .connection-overlay, .modal, #chatbot-widget {
-    display: none !important;
+  
+  .connection-overlay, .modal, .bottom-sheet, .chat-window, .bottom-nav, .toast-container {
+    max-width: 480px;
+    margin: 0 auto;
+    left: 0;
+    right: 0;
+  }
+  
+  .fab {
+    left: 50%;
+    right: auto;
+    margin-left: 154px; 
   }
 }
 
